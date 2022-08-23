@@ -1,0 +1,6 @@
+type token @entity {
+  id: ID!
+  supply: BigInt!
+  symbol: String!
+  decimals: Int!
+}
