@@ -1,6 +1,13 @@
 type token @entity {
   id: ID!
-  supply: BigInt!
   symbol: String!
+  supply: BigInt!
   decimals: Int!
+}
+
+type transrecord @entity {
+    id: ID!
+    from: String!
+    to: String!
+    amount: BigInt!
 }
