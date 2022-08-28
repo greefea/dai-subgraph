@@ -5,9 +5,15 @@ type token @entity {
   decimals: Int!
 }
 
-type transrecord @entity {
+type transfer @entity {
     id: ID!
     from: String!
     to: String!
     amount: BigInt!
+}
+
+type dailyTransfer @entity {
+    id: ID!
+    transfers:Int!
+    amount:BigInt!
 }
