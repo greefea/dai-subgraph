@@ -2,17 +2,18 @@ import { BigInt, ByteArray, log} from "@graphprotocol/graph-ts";
 import { DAI, Approval, LogNote, Transfer } from "../generated/DAI/DAI";
 import { token, transfer, dailyTransfer } from "../generated/schema";
 
+const SECONDS_PER_DAY = 60*60*24;
+
 export function handleTransfer(event: Transfer): void {
 
   let dai = token.load(event.address.toHexString());
 
   let records = transfer.load(event.transaction.hash.toHexString());
-  let day = (event.block.timestamp.toI32() - (event.block.timestamp.toI32()%(60*60*24))).toString();
+  let day = (event.block.timestamp.toI64() / SECONDS_PER_DAY).toString();
 
   let daily = dailyTransfer.load(day);
 
-  // let dailydata = dailyTranfer.load(event.)
-  log.info('block timestamp: {}',[event.block.timestamp.toString()])
+
 
   if (dai == null) {
     dai = new token(event.address.toHexString());
