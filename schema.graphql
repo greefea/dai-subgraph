@@ -10,10 +10,19 @@ type transfer @entity {
     from: String!
     to: String!
     amount: BigInt!
+    amountUSD:BigDecimal
 }
 
 type dailyTransfer @entity {
     id: ID!
+    dateName:String!
     transfers:Int!
     amount:BigInt!
+    amountUSD:BigDecimal
+}
+
+type user @entity {
+    id: ID!
+    isFrom: Int!
+    isTo: Int!
 }
