@@ -4,7 +4,7 @@
   "scripts": {
     "codegen": "npx graph codegen",
     "build": "graph build",
-    "deploy": "npx graph deploy --product hosted-service wyaming89/subgraph002",
+    "deploy": "npx graph deploy --product hosted-service wyaming89/subgraph003",
     "create-local": "graph create --node http://localhost:8020/ dai-ethereum",
     "remove-local": "graph remove --node http://localhost:8020/ dai-ethereum",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 dai-ethereum",
