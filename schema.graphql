@@ -1,28 +1,25 @@
-type token @entity {
-  id: ID!
-  symbol: String!
-  supply: BigInt!
-  decimals: Int!
+type pool @entity {
+    id: ID!
+    pair: String!
+    token0: String!
+    token1: String!
+    symbol0: String
+    symbol1: String
 }
 
-type transfer @entity {
+type swap @entity{
     id: ID!
-    from: String!
     to: String!
-    amount: BigInt!
-    amountUSD:BigDecimal
+    sender: String!
+    amount0In: BigInt!
+    amount1In: BigInt!
+    amount0Out: BigInt!
+    amount1Out: BigInt!
 }
 
-type dailyTransfer @entity {
+type daily @entity{
     id: ID!
-    dateName:String!
-    transfers:Int!
-    amount:BigInt!
-    amountUSD:BigDecimal
-}
-
-type user @entity {
-    id: ID!
-    isFrom: Int!
-    isTo: Int!
+    totalLiquidity: BigInt!
+    totalSwap: BigInt!
+    totalSwapUSD:BigDecimal!
 }
