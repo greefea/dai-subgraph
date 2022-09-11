@@ -3,12 +3,13 @@ type pool @entity {
     pair: String!
     token0: String!
     token1: String!
-    symbol0: String
-    symbol1: String
+    reserve0: BigDecimal!
+    reserve1: BigDecimal!
 }
 
 type swap @entity{
     id: ID!
+    pair: String!
     to: String!
     sender: String!
     amount0In: BigInt!
@@ -17,9 +18,28 @@ type swap @entity{
     amount1Out: BigInt!
 }
 
+type token @entity {
+  id: ID!
+  symbol: String!
+  name: String!
+  totalSupply: BigInt!
+  decimals: BigInt
+}
+
 type daily @entity{
     id: ID!
-    totalLiquidity: BigInt!
-    totalSwap: BigInt!
-    totalSwapUSD:BigDecimal!
+    totalLiquidity: BigDecimal
+    totalSwapUSD: BigDecimal!
+    swapCount: Int!
+    swapAccountCount:Int!
+    allLiquidity: BigDecimal
+    allSwapCount: Int!
+    allSwapAmount: BigDecimal!
+    DAILiquidityRate: BigDecimal!
+    DAISwapCountRate: BigDecimal!
+    DAISwapAmountRate: BigDecimal!
+}
+
+type activeAccount @entity {
+    id: ID!
 }

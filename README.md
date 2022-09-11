@@ -19,5 +19,5 @@ Documentation: https://thegraph.com/docs/en/cookbook/quick-start/
   - handle [PairCreated event](https://docs.uniswap.org/protocol/V2/reference/smart-contracts/factory)
   - add a [template data source](https://docs.uniswap.org/protocol/V2/reference/smart-contracts/factory) for DAI pairs
 2. For each DAI pair, track pool (pair address, token0, token1, reserve0, reserve1) and swap (to, from, tokenA, tokenB, amountIn, amountOut) with a pool and swap entity
-3. add to daily enity, total DAI liquidity (reserve) across all pools, total swap count, total swap amount (USD)
+3. add to daily entity, total DAI liquidity (reserve) across all pools, total swap count, total swap amount (USD)
 4. add to daily entity, % of DAI supply that is providing liquidity at UniSwap v2, % of DAI transfer counts that is swaps, % DAI transfer amount that is swaps
