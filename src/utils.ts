@@ -1,4 +1,5 @@
 import { Address, BigDecimal, BigInt} from "@graphprotocol/graph-ts";
+import { Token } from "../generated/schema";
 import { ERC20 } from "../generated/Uniswapv2/ERC20";
 import {ERC20NameBytes} from "../generated/Uniswapv2/ERC20NameBytes";
 import {ERC20SymbolBytes} from "../generated/Uniswapv2/ERC20SymbolBytes";
@@ -75,4 +76,8 @@ export function fetchTokenTotalSupply(tokenAddress:Address):BigInt {
 export function toDecimal(decimalBigInt:BigInt): BigDecimal {
   let DecialValue = "1".concat("0".repeat(decimalBigInt.toI32()))
   return BigDecimal.fromString(DecialValue)
+}
+
+export function fetchERC20TokenInfo(token:Token): Token {
+  
 }
