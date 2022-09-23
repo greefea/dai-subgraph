@@ -14,6 +14,7 @@ export function isNullEthValue(value:string):boolean {
 export function fetchTokenSymbol(tokenAddres:Address):string {
   let contract = ERC20.bind(tokenAddres);
   let contractSymbolBytes = ERC20SymbolBytes.bind(tokenAddres);
+
   
   let symbolValue = 'unknown';
   let symbolResult = contract.try_symbol();
