@@ -30,16 +30,21 @@ type daily @entity{
     id: ID!
     totalLiquidity: BigDecimal
     totalSwapUSD: BigDecimal!
-    swapCount: Int!
-    swapAccountCount:Int!
-    allLiquidity: BigDecimal
-    allSwapCount: Int!
-    allSwapAmount: BigDecimal!
-    DAILiquidityRate: BigDecimal!
-    DAISwapCountRate: BigDecimal!
-    DAISwapAmountRate: BigDecimal!
+    totalSwapAmount: BigDecimal
+    swapCount: BigDecimal
+    swapAccountCount:BigDecimal!
+    DAILiquidityRate: BigDecimal
+    DAISwapCountRate: BigDecimal
+    DAISwapAmountRate: BigDecimal
 }
 
 type activeAccount @entity {
     id: ID!
+}
+
+type dailyToken @entity {
+    id: ID!
+    dailyTransferCount: BigDecimal
+    dailyTransferAmount: BigDecimal
+    dailySupply: BigDecimal
 }
