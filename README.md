@@ -21,3 +21,6 @@ Documentation: https://thegraph.com/docs/en/cookbook/quick-start/
 2. For each DAI pair, track pool (pair address, token0, token1, reserve0, reserve1) and swap (to, from, tokenA, tokenB, amountIn, amountOut) with a pool and swap entity
 3. add to daily entity, total DAI liquidity (reserve) across all pools, total swap count, total swap amount (USD)
 4. add to daily entity, % of DAI supply that is providing liquidity at UniSwap v2, % of DAI transfer counts that is swaps, % DAI transfer amount that is swaps
+
+## build a subgraph for uniswap v2
+1. fork the format of dex-amm.graphql,build a subgraph
