@@ -63,6 +63,10 @@ templates:
           handler: handleSwap
         - event: Sync(uint112,uint112)
           handler: handleSync
+        - event: Mint(indexed address,uint256,uint256)
+          handler: handleMint
+        - event: Burn(indexed address,uint256,uint256,indexed address)
+          handler: handleBurn
   - kind: ethereum/contract
     name: Token
     network: mainnet

@@ -1,6 +1,5 @@
 type pool @entity {
     id: ID!
-    pair: String!
     token0: String!
     token1: String!
     reserve0: BigDecimal!
@@ -47,4 +46,9 @@ type dailyToken @entity {
     dailyTransferCount: BigDecimal
     dailyTransferAmount: BigDecimal
     dailySupply: BigDecimal
+}
+
+type dailyPool @entity {
+  id: ID!
+  dailyDAILiquidity: BigDecimal!
 }
