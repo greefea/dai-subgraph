@@ -18,7 +18,7 @@ import {
 
  import { ERC20 } from "../generated/Uniswapv2/ERC20";
 
-import {Address, BigDecimal, BigInt } from "@graphprotocol/graph-ts"
+import {Address, BigDecimal, BigInt, ethereum } from "@graphprotocol/graph-ts"
 import { 
   fetchTokenSymbol,
   fetchTokenName,
@@ -82,6 +82,43 @@ export function getOrToken(adr: Address):Token{
     }
     token.decimals = decimalValue;
     token.save();
-    return token
   }
+  return token
 }
+
+export function getOrCreateDexAmmProtocol(id:string):DexAmmProtocol {
+    let protocol = DexAmmProtocol.load(id);
+    if(protocol != null){
+        return protocol
+    } else if (protocol == null){
+        protocol = new DexAmmProtocol(id);
+        protocol.name = 'Uniswap v2'
+        protocol.slug = 'uniswap-v2'
+        protocol.schemaVersion = '1.3.0'
+        protocol.subgraphVersion = '0.0.1'
+        protocol.methodologyVersion = '0.0.0'
+        protocol.network = 'MAIN NETWORK'
+        protocol.type = 'DEX'
+        protocol.totalValueLockedUSD = BIGDECIMAL_ZERO;
+        protocol.protocolControlledValueUSD = BIGDECIMAL_ZERO;
+        protocol.cumulativeVolumeUSD = BIGDECIMAL_ZERO;
+        protocol.cumulativeTotalRevenueUSD = BIGDECIMAL_ZERO;
+        protocol.cumulativeUniqueUsers = 0;
+        protocol.totalPoolCount = 0;
+        protocol.dailyUsageMetrics = []
+        protocol.hourlyUsageMetrics = []
+        protocol.financialMetrics = []
+        protocol.pools = []
+        protocol.save()
+    }
+    return protocol
+}
+
+// export function CreateLiquidityPool(event:ethereum.Event):LiquidityPool {
+//     let pool = LiquidityPool.load(event.address.toHexString())
+//     if(pool != null){
+//         return pool
+//     } else if (pool == null){
+
+//     }
+// }

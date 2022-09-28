@@ -2,40 +2,60 @@ import { BigInt, log, Address, BigDecimal} from "@graphprotocol/graph-ts";
 import { PairCreated} from "../generated/Uniswapv2/Uniswapv2";
 import {oracle} from "../generated/Uniswapv2/oracle";
 import {ERC20} from "../generated/Uniswapv2/ERC20";
-import {Swap, Sync} from "../generated/templates/Pair/Pair";
+import {Mint, Swap, Sync} from "../generated/templates/Pair/Pair";
 import { Transfer } from "../generated/templates/Token/ERC20";
-import {Pair as PairTemplate, Token as DAITemplate} from "../generated/templates"
-import { pool, swap, daily, activeAccount,token, dailyToken } from "../generated/schema";
+import {Pair as PairTemplate} from "../generated/templates"
+import { LiquidityPool } from "../generated/schema";
 
 import { SECONDS_PER_DAY, ORACLE_ADDRESS, BIGINT_ONE, BIGDECIMAL_ZERO, BIGINT_ZERO, BIGDECIMAL_ONE} from "./constants";
 import { getOrCreateToken } from "./helper";
 import { toDecimal } from "./utils";
+import { getOrCreateDexAmmProtocol } from "./entites";
 
 
 
 
 export function handlePairCreated(event: PairCreated): void {
+  let protocol = getOrCreateDexAmmProtocol(event.address.toHexString())
   let token0 = getOrCreateToken(event.params.token0);
   let token1 = getOrCreateToken(event.params.token1);
-  if (token0.symbol=='DAI'||token1.symbol=='DAI'){
-    let id = event.params.pair.toHexString()
-    let pl = pool.load(id);
-    if (pl == null) {
-      pl = new pool(id);
-      pl.reserve0 = BIGDECIMAL_ZERO;
-      pl.reserve1 = BIGDECIMAL_ZERO;
-    }
-    pl.token0 = token0.id;
-    pl.token1 = token1.id;
-    pl.pair = event.params.pair.toHexString();
-    PairTemplate.create(event.params.pair)
-    pl.save();
-    if (token0.symbol == 'DAI'){
-        DAITemplate.create(event.params.token0)
-    } else {
-        DAITemplate.create(event.params.token1)
-    }
+  let LPtoken = getOrCreateToken(event.params.pair)
+  let pairAddress = event.params.pair;
+  let pool = LiquidityPool.load(pairAddress.toHexString());
+  if(pool == null){
+    pool = new LiquidityPool(pairAddress.toHexString());
+    pool.protocol = protocol.id
+    pool.name = token0.name.concat('/').concat(token1.name);
+    pool.symbol = ''
+    pool.inputTokens = [token0.id, token1.id]
+    pool.outputToken = LPtoken.id;
+    pool.rewardTokens = []
+    pool.fees = []
+    pool.isSingleSided = false
+    pool.createdTimestamp = event.block.timestamp
+    pool.createdBlockNumber = event.block.number
+    pool.totalValueLockedUSD = BIGDECIMAL_ZERO;
+    pool.cumulativeSupplySideRevenueUSD = BIGDECIMAL_ZERO;
+    pool.cumulativeProtocolSideRevenueUSD = BIGDECIMAL_ZERO
+    pool.cumulativeTotalRevenueUSD = BIGDECIMAL_ZERO;
+    pool.cumulativeVolumeUSD = BIGDECIMAL_ZERO;
+    pool.inputTokenBalances = [BIGINT_ZERO]
+    pool.inputTokenWeights = [BIGDECIMAL_ONE]
+    pool.outputTokenSupply = BIGINT_ZERO;
+    pool.outputTokenPriceUSD = BIGDECIMAL_ZERO;
+    pool.stakedOutputTokenAmount = BIGINT_ZERO;
+    pool.rewardTokenEmissionsAmount = [BIGINT_ZERO];
+    pool.rewardTokenEmissionsUSD = [BIGDECIMAL_ZERO]
+    pool.dailySnapshots = []
+    pool.hourlySnapshots = []
+    pool.deposits = []
+    pool.withdraws = []
+    pool.swaps = []
+    pool.save()
   }
+
+    PairTemplate.create(event.params.pair)
+   
 }
 
 export function handleSwap(event:Swap):void {
@@ -129,34 +149,7 @@ export function handleSwap(event:Swap):void {
     
 }
 
-export function handleSync(event:Sync):void {
-  let id = event.address.toHexString();
-  let pair = pool.load(id);
-  pair!.reserve0 = pair!.reserve0.plus(event.params.reserve0.toBigDecimal());
-  pair!.reserve1 = pair!.reserve1.plus(event.params.reserve1.toBigDecimal());
-  pair!.save();
-  let day = (event.block.timestamp.toI32()/SECONDS_PER_DAY).toString();
-  let dailyentity = daily.load(day);
 
-  if(dailyentity == null){
-    dailyentity = new daily(day);
-    dailyentity.totalLiquidity = BIGDECIMAL_ZERO;
-    dailyentity.totalSwapUSD = BIGDECIMAL_ZERO;
-    dailyentity.totalSwapAmount = BIGDECIMAL_ZERO;
-    dailyentity.swapCount = BIGDECIMAL_ZERO;
-    dailyentity.swapAccountCount = BIGDECIMAL_ZERO;
-  }
-  let token0 = token.load(pair!.token0)
-  let token1 = token.load(pair!.token1)
-  if(token0!.symbol == 'DAI'){
-    dailyentity.totalLiquidity = dailyentity.totalLiquidity!.plus(event.params.reserve0.toBigDecimal())
-    dailyentity.save();
-  } else if(token1!.symbol == 'DAI'){
-    dailyentity.totalLiquidity = dailyentity.totalLiquidity!.plus(event.params.reserve1.toBigDecimal())
-    dailyentity.save();
-  }
-  
-}
 
 export function tokenHandleTransfer(event:Transfer):void {
     let day = (event.block.timestamp.toI32()/SECONDS_PER_DAY).toString();
@@ -171,4 +164,12 @@ export function tokenHandleTransfer(event:Transfer):void {
     dailyDAI.dailyTransferCount = dailyDAI.dailyTransferCount!.plus(BIGDECIMAL_ONE)
     dailyDAI.dailyTransferAmount = dailyDAI.dailyTransferAmount!.plus(event.params.value.toBigDecimal())
     dailyDAI.save();
+}
+
+export function handleMint(event:Mint):void {
+  
+}
+
+export function handleBurn(event:Burn):void {
+  
 }
