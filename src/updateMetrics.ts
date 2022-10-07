@@ -1,8 +1,8 @@
 import { ethereum, Address, BigDecimal, BigInt } from "@graphprotocol/graph-ts";
 import { ERC20 } from "../generated/Uniswapv2/ERC20";
 import { Account, ActiveAccount, LiquidityPool, LiquidityPoolDailySnapshot, Token } from "../generated/schema";
-import { SECONDS_PER_DAY, SECONDS_PER_HOUR } from "./constants";
-import { CreateDexAmmProtocol, CreateLiquidityPool, getOrCreateLiquidityPoolDailySnapshot, getOrCreateLiquidityPoolHourlySnapshot, getOrCreateUsageMetricsDailySnapshot, getOrCreateUsageMetricsHourlySnapshot } from "./entites";
+import { BIGINT_ZERO, SECONDS_PER_DAY, SECONDS_PER_HOUR } from "./constants";
+import { CreateDexAmmProtocol, CreateLiquidityPool, getOrCreateFinancialsDailySnapshot, getOrCreateLiquidityPoolDailySnapshot, getOrCreateLiquidityPoolHourlySnapshot, getOrCreateUsageMetricsDailySnapshot, getOrCreateUsageMetricsHourlySnapshot } from "./entites";
 
 export function updateLiquidityPoolMetrics(event:ethereum.Event):void  {
   let eventAddress = event.address.toHexString()
@@ -13,8 +13,16 @@ export function updateLiquidityPoolMetrics(event:ethereum.Event):void  {
   let ERC20Token0 = ERC20.bind(Address.fromString(token0))
   let ERC20Token1 = ERC20.bind(Address.fromString(token1))
   let ERC20LPToken = ERC20.bind(Address.fromString(LPtoken))
-  let token0Balance = ERC20Token0.balanceOf(Address.fromString(eventAddress))
-  let token1Balance = ERC20Token1.balanceOf(Address.fromString(eventAddress)) 
+  let token0Balance = BIGINT_ZERO;
+  let token1Balance = BIGINT_ZERO;
+  let token0result = ERC20Token0.try_balanceOf(Address.fromString(eventAddress))
+  let token1result = ERC20Token1.try_balanceOf(Address.fromString(eventAddress)) 
+  if(!token0result.reverted){
+    token0Balance = token0result.value
+  }
+  if(!token1result.reverted){
+    token1Balance = token1result.value
+  }
   let totalBalance = token0Balance.plus(token1Balance)
   let token0Weight = token0Balance.div(totalBalance).times(BigInt.fromI32(100)).toBigDecimal()
   let token1Weight = token1Balance.div(totalBalance).times(BigInt.fromI32(100)).toBigDecimal()
@@ -44,8 +52,8 @@ export function updateProtocolMetrics(event:ethereum.Event, userAddress:string, 
   let user = Account.load(userAddress)
   if (user == null) {
     protocol.cumulativeUniqueUsers += 1
-    dailyProtocolSnapshot.cumulativeUniqueUsers += 1
-    hourlyProtocolSnapshot.cumulativeUniqueUsers += 1
+    dailyProtocolSnapshot.cumulativeUniqueUsers = protocol.cumulativeUniqueUsers
+    hourlyProtocolSnapshot.cumulativeUniqueUsers = protocol.cumulativeUniqueUsers
   }
   let dailyactiveUser = ActiveAccount.load('daily'+userAddress+day)
   if (dailyactiveUser == null){
@@ -71,4 +79,11 @@ export function updateProtocolMetrics(event:ethereum.Event, userAddress:string, 
   protocol.save();
   dailyProtocolSnapshot.save();
   hourlyProtocolSnapshot.save();
+}
+
+export function updateProtcolFinancialsMetrics(event:ethereum.Event) {
+  let day = event.block.timestamp.toI32()/SECONDS_PER_DAY
+  let id = day.toString()
+  let dailyFinancialsSnapshot = getOrCreateFinancialsDailySnapshot(event)
+  
 }
