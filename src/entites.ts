@@ -45,10 +45,12 @@ import { ERC20SymbolBytes } from "../generated/Uniswapv2/ERC20SymbolBytes";
 import { ERC20NameBytes } from "../generated/Uniswapv2/ERC20NameBytes";
 
 import { Mint, Burn, Swap as SwapEvent } from "../generated/templates/Pair/Pair";
+import { getPrice } from "./oracle";
 
 export function getOrCreateToken(adr: Address):Token{
   let id = adr.toHexString();
   let token = Token.load(id);
+  let price = getPrice(id).toBigDecimal();
   if(token == null){
     token = new Token(id);
     let contract = ERC20.bind(adr);
@@ -89,7 +91,7 @@ export function getOrCreateToken(adr: Address):Token{
       decimalValue = decimalResult.value
     }
     token.decimals = decimalValue;
-    token.lastPriceUSD = BIGDECIMAL_ZERO;
+    token.lastPriceUSD = price;
     token.lastPriceBlockNumber = BIGINT_ZERO;
     token.save();
   }
@@ -146,7 +148,7 @@ export function getOrCreateUsageMetricsDailySnapshot(event:ethereum.Event):Usage
         dailySnapshots.cumulativeUniqueUsers = INT_ZERO;
         dailySnapshots.dailyTransactionCount = INT_ZERO;
         dailySnapshots.dailyDepositCount = INT_ZERO;
-        dailySnapshots.dailyDepositCount = INT_ZERO;
+        dailySnapshots.dailyWithdrawCount = INT_ZERO;
         dailySnapshots.dailySwapCount = INT_ZERO;
         dailySnapshots.totalPoolCount = INT_ZERO;
         dailySnapshots.blockNumber = event.block.number;
@@ -167,7 +169,7 @@ export function getOrCreateUsageMetricsHourlySnapshot(event: ethereum.Event): Us
         hourlySnapshots.cumulativeUniqueUsers = INT_ZERO;
         hourlySnapshots.hourlyTransactionCount = INT_ZERO;
         hourlySnapshots.hourlyDepositCount = INT_ZERO;
-        hourlySnapshots.hourlyDepositCount = INT_ZERO;
+        hourlySnapshots.hourlyWithdrawCount = INT_ZERO;
         hourlySnapshots.hourlySwapCount = INT_ZERO;
         hourlySnapshots.blockNumber = event.block.number;
         hourlySnapshots.timestamp = event.block.timestamp;

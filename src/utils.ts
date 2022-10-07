@@ -3,7 +3,7 @@ import { Token } from "../generated/schema";
 import { ERC20 } from "../generated/Uniswapv2/ERC20";
 import {ERC20NameBytes} from "../generated/Uniswapv2/ERC20NameBytes";
 import {ERC20SymbolBytes} from "../generated/Uniswapv2/ERC20SymbolBytes";
-import { BIGINT_ZERO } from "./constants";
+import { BIGDECIMAL_ZERO, BIGINT_ZERO } from "./constants";
 
 
 
@@ -80,4 +80,12 @@ export function toDecimal(decimalBigInt:BigInt): BigDecimal {
 
 export function fetchERC20TokenInfo(token:Token): Token {
   
+}
+
+export function safeDiv(value0:BigDecimal, value1:BigDecimal):BigDecimal {
+  if(value1.equals(BIGDECIMAL_ZERO)){
+    return BIGDECIMAL_ZERO
+  }else {
+    return value0.div(value1)
+  }
 }

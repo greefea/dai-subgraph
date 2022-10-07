@@ -1,12 +1,11 @@
 import { BigInt, log, Address, BigDecimal} from "@graphprotocol/graph-ts";
 import { PairCreated} from "../generated/Uniswapv2/Uniswapv2";
 import {oracle} from "../generated/Uniswapv2/oracle";
-import {ERC20} from "../generated/Uniswapv2/ERC20";
 import {Mint, Swap,Burn, Sync} from "../generated/templates/Pair/Pair";
 import { Transfer } from "../generated/templates/Token/ERC20";
 import {Pair as PairTemplate} from "../generated/templates"
 import { LiquidityPool } from "../generated/schema";
-import { updateLiquidityPoolMetrics } from "./updateMetrics"
+import { updateLiquidityPoolMetrics, updateProtocolMetrics } from "./updateMetrics"
 
 import { SECONDS_PER_DAY, ORACLE_ADDRESS, BIGINT_ONE, BIGDECIMAL_ZERO, BIGINT_ZERO, BIGDECIMAL_ONE} from "./constants";
 import { toDecimal } from "./utils";
@@ -37,28 +36,30 @@ export function handlePairCreated(event: PairCreated): void {
 }
 
 
-// let ERC20Token0 = ERC20.bind(Address.fromHexString(token0.id))
-// let ERC20Token1 = ERC20.bind(Address.fromHexString(token1.id))
-// let ERC20LPToken = ERC20.bind(Address.fromHexString(LPtoken.id))
-// let token0Balance = ERC20Token0.balanceOf(Address.fromHexString(id))
-// let token1Balance = ERC20Token1.balanceOf(Address.fromHexString(id)) 
+
 
 
 export function handleSwap(event:Swap):void {
   let pairAddress = event.address
   let swapEntity = getOrCreateSwap(event) 
   let pool = LiquidityPool.load(pairAddress.toHexString())
+  let userAddress = event.params.sender.toHexString()
   updateLiquidityPoolMetrics(event)
+  updateProtocolMetrics(event, userAddress, 'SWAP')
 
 }
 
 export function handleMint(event:Mint):void {
   let depositEntity = getOrCreateDeposit(event)
+  let userAddress = event.params.sender.toHexString()
   updateLiquidityPoolMetrics(event)
+  updateProtocolMetrics(event, userAddress, 'DESPOSIT')
 
 }
 
 export function handleBurn(event:Burn):void {
   let withdrawEntity = getOrCreateWithdraw(event)
+  let userAddress = event.params.sender.toHexString()
   updateLiquidityPoolMetrics(event)
+  updateProtocolMetrics(event, userAddress, 'WITHDRAW')
 }

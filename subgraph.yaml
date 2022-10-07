@@ -25,8 +25,8 @@ dataSources:
           file: ./abis/ERC20.json
         - name: ERC20SymbolBytes
           file: ./abis/ERC20SymbolBytes.json
-        - name: oracle
-          file: ./abis/oracle.json
+        - name: chainlink
+          file: ./abis/chainlink.json
         - name: ERC20NameBytes
           file: ./abis/ERC20NameBytes.json
       eventHandlers:
@@ -62,8 +62,8 @@ templates:
           file: ./abis/ERC20.json
         - name: Uniswapv2
           file: ./abis/Uniswapv2.json
-        - name: oracle
-          file: ./abis/oracle.json
+        - name: chainlink
+          file: ./abis/chainlink.json
       eventHandlers:
         - event: Swap(indexed address,uint256,uint256,uint256,uint256,indexed address)
           handler: handleSwap
