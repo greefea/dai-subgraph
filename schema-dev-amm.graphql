@@ -796,3 +796,40 @@ type ActiveAccount @entity {
   " { daily/hourly }-{ Address of the account }-{ Days/hours since Unix epoch } "
   id: ID!
 }
+
+#Added Entities
+
+type _LiquidityPoolAmount @entity {
+  "Smart contract address of the pool"
+  id: ID!
+
+  "Input tokens of the pool (not input tokens of the event/transaction)/ E.g. WETH and USDC from a WETH-USDC pool"
+  inputTokens: [Token!]!
+
+  "Amount of input tokens in the pool. The ordering should be the same as the pool's inputTokens field."
+  inputTokenBalances: [BigDecimal!]!
+}
+
+type _TokenWhitelist @entity {
+  "Token Address"
+  id: ID!
+
+  "pools token is in that are white listed for USD pricing"
+  whitelistPools: [LiquidityPool!]!
+}
+
+type _HelperStore @entity {
+  id: ID!
+
+  "price of ETH in USD"
+  valueDecimal: BigDecimal
+
+  "number of deposits, number of unique Users"
+  valueInt: Int
+
+  "number of days since last reward calculations"
+  valueBigInt: BigInt
+
+  "Contains the address mapping for MasterChef pool id"
+  valueString: String
+}
