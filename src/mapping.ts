@@ -1,21 +1,23 @@
-import { BigInt, log, Address, BigDecimal} from "@graphprotocol/graph-ts";
 import { PairCreated} from "../generated/Uniswapv2/Uniswapv2";
-import {oracle} from "../generated/Uniswapv2/oracle";
 import {Mint, Swap,Burn, Sync} from "../generated/templates/Pair/Pair";
-import { Transfer } from "../generated/templates/Token/ERC20";
 import {Pair as PairTemplate} from "../generated/templates"
-import { LiquidityPool } from "../generated/schema";
-import { updateLiquidityPoolMetrics, updateProtocolMetrics } from "./updateMetrics"
+import { LiquidityPool, _HelperStore, Token } from "../generated/schema";
+import { updateLiquidityPoolMetrics, updateProtocolMetrics, updateTokenWhitelists, updateTokenPrice, updateVolumeAndFees } from "./updateMetrics"
+import { getTrackedVolumeUSD } from "./price/price"
 
-import { SECONDS_PER_DAY, ORACLE_ADDRESS, BIGINT_ONE, BIGDECIMAL_ZERO, BIGINT_ZERO, BIGDECIMAL_ONE} from "./constants";
-import { toDecimal } from "./utils";
+
+
 import { CreateDexAmmProtocol, 
   getOrCreateToken, 
   getOrCreateLPToken, 
   CreateLiquidityPool, 
   getOrCreateSwap,
   getOrCreateDeposit, 
-  getOrCreateWithdraw} from "./entites";
+  getOrCreateWithdraw,
+    getOrCreateFinancialsDailySnapshot,
+    CreateLiquidityPoolFee} from "./entites";
+import { getTrackedVolumeUSD, updateNativeTokenPrice } from "./price/price";
+import { FACTORY_ADDRESS } from "./constants";
 
 
 
@@ -30,13 +32,13 @@ export function handlePairCreated(event: PairCreated): void {
   let pool =CreateLiquidityPool(event,poolAddres, token0, token1, LPtoken);
   protocol.totalPoolCount += 1;
   protocol.save()
-
-  PairTemplate.create(event.params.pair)
+  updateTokenWhitelists(event.params.token0.toHexString(), event.params.token1.toHexString(), event.params.pair.toHexString())
+  let _ = updateNativeTokenPrice()
+  let __ = getOrCreateFinancialsDailySnapshot(event)
+  CreateLiquidityPoolFee(poolAddres)
+  PairTemplate.create(pair)
    
 }
-
-
-
 
 
 export function handleSwap(event:Swap):void {
@@ -44,6 +46,14 @@ export function handleSwap(event:Swap):void {
   let swapEntity = getOrCreateSwap(event) 
   let pool = LiquidityPool.load(pairAddress.toHexString())
   let userAddress = event.params.sender.toHexString()
+  let token0Amount = event.params.amount0Out.plus(event.params.amount0In)
+  let token1Amount = event.params.amount1Out.plus(event.params.amount1In)
+  let token0 = Token.load(pool!.inputTokens[0])!
+  let token1 = Token.load(pool!.inputTokens[1])!
+  let poolAddress = pairAddress.toHexString();
+  let trackedAmountUSD = getTrackedVolumeUSD(poolAddress,token0Amount.toBigDecimal(),token0, token1Amount.toBigDecimal(), token1)
+  updateVolumeAndFees(event, FACTORY_ADDRESS, poolAddress, trackedAmountUSD, token0Amount, token1Amount)
+  updateTokenPrice(event)
   updateLiquidityPoolMetrics(event)
   updateProtocolMetrics(event, userAddress, 'SWAP')
 
@@ -52,6 +62,10 @@ export function handleSwap(event:Swap):void {
 export function handleMint(event:Mint):void {
   let depositEntity = getOrCreateDeposit(event)
   let userAddress = event.params.sender.toHexString()
+  let poolDeposits = _HelperStore.load(event.address.toHexString())
+  poolDeposits!.valueInt = poolDeposits!.valueInt + 1
+  poolDeposits!.save()
+  updateTokenPrice(event)
   updateLiquidityPoolMetrics(event)
   updateProtocolMetrics(event, userAddress, 'DESPOSIT')
 
@@ -60,6 +74,7 @@ export function handleMint(event:Mint):void {
 export function handleBurn(event:Burn):void {
   let withdrawEntity = getOrCreateWithdraw(event)
   let userAddress = event.params.sender.toHexString()
+  updateTokenPrice(event)
   updateLiquidityPoolMetrics(event)
   updateProtocolMetrics(event, userAddress, 'WITHDRAW')
 }

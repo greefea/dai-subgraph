@@ -1,5 +1,5 @@
 import { Address, BigDecimal, BigInt} from "@graphprotocol/graph-ts";
-import { Token } from "../generated/schema";
+import { LiquidityPool, Token } from "../generated/schema";
 import { ERC20 } from "../generated/Uniswapv2/ERC20";
 import {ERC20NameBytes} from "../generated/Uniswapv2/ERC20NameBytes";
 import {ERC20SymbolBytes} from "../generated/Uniswapv2/ERC20SymbolBytes";
@@ -89,3 +89,25 @@ export function safeDiv(value0:BigDecimal, value1:BigDecimal):BigDecimal {
     return value0.div(value1)
   }
 }
+
+export function convertDecimal(decimal: i32): BigDecimal {
+  let DecialValue = "1".concat("0".repeat(decimal))
+  return BigDecimal.fromString(DecialValue)
+}
+
+export function convertTokenToDecimal(tokenAmount: BigInt, decimal: i32): BigDecimal {
+  if (decimal == 0) {
+    return tokenAmount.toBigDecimal()
+  }
+  return tokenAmount.toBigDecimal().div(convertDecimal(decimal))
+}
+
+export function getPoolTVL(token0Address:string, token1Address:string, poolAddress:string):BigDecimal {
+    let token0 = Token.load(token0Address)!
+    let token1 = Token.load(token1Address)!
+    let pool = LiquidityPool.load(poolAddress)!
+    let tvl = (token0.lastPriceUSD!.times(convertTokenToDecimal(pool.inputTokenBalances[0],token0.decimals))
+    ).plus(token1.lastPriceUSD!.times(convertTokenToDecimal(pool.inputTokenBalances[1],token1.decimals)))
+    return tvl
+}
+

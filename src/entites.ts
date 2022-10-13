@@ -13,23 +13,20 @@ import {
   Withdraw,
   Swap,
   Account,
-  ActiveAccount
+  ActiveAccount,
+  _LiquidityPoolAmount,
+  _TokenWhitelist,
+  _HelperStore
  } from "../generated/schema";
 
  import { ERC20 } from "../generated/Uniswapv2/ERC20";
 
 import {Address, BigDecimal, BigInt, ethereum } from "@graphprotocol/graph-ts"
 import { 
-  fetchTokenSymbol,
-  fetchTokenName,
-  fetchTokenDecimals,
-  fetchTokenTotalSupply,
-  fetchERC20TokenInfo,
   isNullEthValue
  } from "./utils";
 import {
   BIGINT_ZERO,
-  BIGDECIMAL_ONE,
   BIGDECIMAL_ZERO,
   BIGINT_ONE,
   DEFAULT_DECIMAL,
@@ -39,18 +36,20 @@ import {
   SECONDS_PER_HOUR,
   BIGDECIMAL_50,
   Network,
-  ProtocolType
+  ProtocolType,
+  LquidityPoolFee
 } from "./constants"
 import { ERC20SymbolBytes } from "../generated/Uniswapv2/ERC20SymbolBytes";
 import { ERC20NameBytes } from "../generated/Uniswapv2/ERC20NameBytes";
 
 import { Mint, Burn, Swap as SwapEvent } from "../generated/templates/Pair/Pair";
-import { getPrice } from "./oracle";
+
+import { updateTokenWhitelists } from "./updateMetrics";
 
 export function getOrCreateToken(adr: Address):Token{
   let id = adr.toHexString();
   let token = Token.load(id);
-  let price = getPrice(id).toBigDecimal();
+  // let price = getPrice(id).toBigDecimal();
   if(token == null){
     token = new Token(id);
     let contract = ERC20.bind(adr);
@@ -91,7 +90,7 @@ export function getOrCreateToken(adr: Address):Token{
       decimalValue = decimalResult.value
     }
     token.decimals = decimalValue;
-    token.lastPriceUSD = price;
+    token.lastPriceUSD = BIGDECIMAL_ZERO;
     token.lastPriceBlockNumber = BIGINT_ZERO;
     token.save();
   }
@@ -207,6 +206,7 @@ export function CreateLiquidityPool(event:ethereum.Event,poolAddress:string, tok
   let pool = LiquidityPool.load(id)
   if (pool == null) {
     pool = new LiquidityPool(id);
+    let poolAmounts = new _LiquidityPoolAmount(id);
     pool.protocol = FACTORY_ADDRESS
     pool.name = token0.name.concat('/').concat(token1.name);
     pool.symbol = token0.name.concat('/').concat(token1.name)
@@ -230,8 +230,27 @@ export function CreateLiquidityPool(event:ethereum.Event,poolAddress:string, tok
     pool.rewardTokenEmissionsAmount = [BIGINT_ZERO];
     pool.rewardTokenEmissionsUSD = [BIGDECIMAL_ZERO]
     pool.save()
+
+    poolAmounts.inputTokens = [token0.id, token1.id]
+    poolAmounts.inputTokenBalances = [BIGDECIMAL_ZERO, BIGDECIMAL_ZERO]
+    poolAmounts.save()
+    let poolDeposits = new _HelperStore(id)
+    poolDeposits.valueInt = 0;
+    poolDeposits.save();
+    updateTokenWhitelists(token0.id, token1.id, id)
   }
   return pool
+}
+
+export function CreateLiquidityPoolFee(poolAddress:string):void {
+    let id = LquidityPoolFee.FIXED_TRADING_FEE + '-' + poolAddress
+    let poolFee = LiquidityPoolFee.load(id)
+    if(poolFee == null){
+        poolFee = new LiquidityPoolFee(id)
+        poolFee!.feePercentage = BigDecimal.fromString("3")
+        poolFee!.feeType = LquidityPoolFee.FIXED_TRADING_FEE
+        poolFee!.save()
+    }
 }
 
 export function getOrCreateLiquidityPoolDailySnapshot(event:ethereum.Event):LiquidityPoolDailySnapshot {
@@ -327,7 +346,11 @@ export function getOrCreateDeposit(event:Mint):Deposit {
     depositEntity.outputToken = pool!.outputToken;
     depositEntity.inputTokenAmounts = [event.params.amount0,event.params.amount0]
     depositEntity.outputTokenAmount = BIGINT_ZERO;
-    depositEntity.amountUSD = BIGDECIMAL_ZERO;
+    let token0 = Token.load(pool!.inputTokens[0])!
+    let token0AmountUSD = token0.lastPriceUSD!.times(event.params.amount0.toBigDecimal())
+    let token1 = Token.load(pool!.inputTokens[1])!
+    let token1AmountUSD = token1.lastPriceUSD!.times(event.params.amount1.toBigDecimal())
+    depositEntity.amountUSD = token0AmountUSD.plus(token1AmountUSD);
     depositEntity.pool = pool!.id
     depositEntity.save();
   }
@@ -393,3 +416,12 @@ export function getOrCreateSwap(event:SwapEvent):Swap {
   return swapEntity
 }
 
+export function getOrCreateTokenWhitelist(tokenAddres:string):_TokenWhitelist {
+  let token = _TokenWhitelist.load(tokenAddres)
+  if(token == null){
+    token = new _TokenWhitelist(tokenAddres)
+    token.whitelistPools = []
+    token.save()
+  }
+  return token
+}
