@@ -19,7 +19,7 @@ import { BIGDECIMAL_ONE, BIGDECIMAL_ZERO,
   BIGDECIMAL_TWO
 } from "../constants";
 import { getOrCreateToken, getOrCreateTokenWhitelist } from "../entites";
-import { safeDiv } from "../utils";
+import { safeDiv, convertTokenToDecimal } from "../utils";
 
 
 export function updateNativeTokenPrice():Token {
@@ -112,8 +112,8 @@ export function getTrackedVolumeUSD(
     return [BIGDECIMAL_ZERO, BIGDECIMAL_ZERO, BIGDECIMAL_ZERO]
   }
   if (poolDeposits.valueInt < 5){
-    let reserve0USD = poolAmounts!.inputTokenBalances[0].times(price0USD);
-    let reserve1USD = poolAmounts!.inputTokenBalances[1].times(price1USD);
+    let reserve0USD = convertTokenToDecimal(BigInt.fromString(poolAmounts!.inputTokenBalances[0]!.toString()), token0.decimals).times(price0USD);
+    let reserve1USD = convertTokenToDecimal(BigInt.fromString(poolAmounts!.inputTokenBalances[1]!.toString()), token1.decimals).times(price1USD);
     if (WHITELIST_TOKENS.includes(token0.id) && WHITELIST_TOKENS.includes(token1.id)){
       if (reserve0USD!.plus(reserve1USD).lt(MINIMUM_LIQUIDITY_FOUR_HUNDRED_THOUSAND)){
         return [BIGDECIMAL_ZERO, BIGDECIMAL_ZERO, BIGDECIMAL_ZERO]
@@ -132,18 +132,20 @@ export function getTrackedVolumeUSD(
   }
 
   if(WHITELIST_TOKENS.includes(token0.id) && WHITELIST_TOKENS.includes(token1.id)) {
-    let token0ValueUSD = tokenAmount0.times(price0USD);
-    let token1ValueUSD = tokenAmount1.times(price1USD);
+    let token0ValueUSD = convertTokenToDecimal(BigInt.fromString(tokenAmount0.toString()), token0.decimals).times(price0USD);
+    let token1ValueUSD = convertTokenToDecimal(BigInt.fromString(tokenAmount1.toString()), token1.decimals).times(price1USD);
 
     return [token0ValueUSD, token1ValueUSD, token0ValueUSD.plus(token1ValueUSD).div(BIGDECIMAL_TWO)]
   }
 
   if(!WHITELIST_TOKENS.includes(token0.id) && WHITELIST_TOKENS.includes(token1.id)) {
-    return [tokenAmount1.times(price1USD), tokenAmount1.times(price1USD), tokenAmount1.times(price1USD)]
+    let token1ValueUSD = convertTokenToDecimal(BigInt.fromString(tokenAmount1.toString()), token1.decimals).times(price1USD);
+    return [token1ValueUSD, token1ValueUSD, token1ValueUSD]
   }
 
   if (WHITELIST_TOKENS.includes(token0.id) && !WHITELIST_TOKENS.includes(token1.id)) {
-    return [tokenAmount0.times(price0USD), tokenAmount0.times(price0USD), tokenAmount0.times(price0USD)]
+    let token0ValueUSD = convertTokenToDecimal(BigInt.fromString(tokenAmount0.toString()), token0.decimals).times(price0USD);
+    return [token0ValueUSD, token0ValueUSD,  token0ValueUSD]
   }
 
   return [BIGDECIMAL_ZERO, BIGDECIMAL_ZERO, BIGDECIMAL_ZERO]

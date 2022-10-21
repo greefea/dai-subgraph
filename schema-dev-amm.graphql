@@ -423,6 +423,9 @@ type LiquidityPool @entity {
   " Amount of input tokens in the pool. The ordering should be the same as the pool's `inputTokens` field. "
   inputTokenBalances: [BigInt!]!
 
+  " Amount of input tokens in the pool"
+  _inputTokenBalancesAmount: [BigDecimal!]
+
   " Weights of input tokens in the liquidity pool in percentage values. For example, 50/50 for Uniswap pools, 48.2/51.8 for a Curve pool, 10/10/80 for a Balancer pool "
   inputTokenWeights: [BigDecimal!]!
 
@@ -832,4 +835,11 @@ type _HelperStore @entity {
 
   "Contains the address mapping for MasterChef pool id"
   valueString: String
+}
+
+type _TotalLockedUSD @entity{
+  id:ID!
+  timestamp:BigInt!
+  totalValueLockedUSD:BigDecimal!
+  operationPool: String!
 }

@@ -130,7 +130,7 @@ export const STABLE_COINS = [
 ]
 
 export const UNTRACK_PAIRS = [
-  "0x9ea3b5b4ec044b70375236a281986106457b20ef"
+  "0x9ea3b5b4ec044b70375236a281986106457b20ef" //
 ]
 
 export const INT_ZERO = 0;

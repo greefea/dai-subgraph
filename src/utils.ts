@@ -1,9 +1,10 @@
-import { Address, BigDecimal, BigInt} from "@graphprotocol/graph-ts";
+import { Address, BigDecimal, BigInt, log} from "@graphprotocol/graph-ts";
 import { LiquidityPool, Token } from "../generated/schema";
 import { ERC20 } from "../generated/Uniswapv2/ERC20";
 import {ERC20NameBytes} from "../generated/Uniswapv2/ERC20NameBytes";
 import {ERC20SymbolBytes} from "../generated/Uniswapv2/ERC20SymbolBytes";
 import { BIGDECIMAL_ZERO, BIGINT_ZERO } from "./constants";
+import { getUsdPricePerToken } from "./prices";
 
 
 
@@ -78,9 +79,7 @@ export function toDecimal(decimalBigInt:BigInt): BigDecimal {
   return BigDecimal.fromString(DecialValue)
 }
 
-export function fetchERC20TokenInfo(token:Token): Token {
-  
-}
+
 
 export function safeDiv(value0:BigDecimal, value1:BigDecimal):BigDecimal {
   if(value1.equals(BIGDECIMAL_ZERO)){
@@ -106,8 +105,21 @@ export function getPoolTVL(token0Address:string, token1Address:string, poolAddre
     let token0 = Token.load(token0Address)!
     let token1 = Token.load(token1Address)!
     let pool = LiquidityPool.load(poolAddress)!
-    let tvl = (token0.lastPriceUSD!.times(convertTokenToDecimal(pool.inputTokenBalances[0],token0.decimals))
-    ).plus(token1.lastPriceUSD!.times(convertTokenToDecimal(pool.inputTokenBalances[1],token1.decimals)))
+    let token0Amount = (convertTokenToDecimal(pool.inputTokenBalances[0], token0.decimals))
+    let token1Amount = (convertTokenToDecimal(pool.inputTokenBalances[1], token1.decimals))
+    let tvl = (token0.lastPriceUSD!.times(token0Amount)).plus(token1.lastPriceUSD!.times(token1Amount))
     return tvl
+}
+
+export function getTokenPrice(token:string):BigDecimal{
+  let tokenAddress = Address.fromString(token)
+  let tokenPrice: BigDecimal
+  let fetchPrice = getUsdPricePerToken(tokenAddress)
+  if(!fetchPrice.reverted){
+    tokenPrice = fetchPrice.usdPrice.div(fetchPrice.decimalsBaseTen)
+  } else {
+    tokenPrice = fetchPrice.usdPrice
+  }
+  return tokenPrice
 }
 

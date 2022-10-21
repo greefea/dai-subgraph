@@ -1,6 +1,8 @@
-import { ethereum, Address, BigDecimal, BigInt } from "@graphprotocol/graph-ts";
+import { ethereum, Address, BigDecimal, BigInt, log } from "@graphprotocol/graph-ts";
 import { ERC20 } from "../generated/Uniswapv2/ERC20";
-import { Account, ActiveAccount, DexAmmProtocol, LiquidityPool, LiquidityPoolDailySnapshot, Token, _LiquidityPoolAmount } from "../generated/schema";
+import { Account, ActiveAccount, DexAmmProtocol, LiquidityPool,
+   LiquidityPoolDailySnapshot, Token, _LiquidityPoolAmount,
+  _TotalLockedUSD } from "../generated/schema";
 import { BIGINT_ZERO, SECONDS_PER_DAY, SECONDS_PER_HOUR, WHITELIST_TOKENS } from "./constants";
 import { CreateDexAmmProtocol,
    getOrCreateFinancialsDailySnapshot, 
@@ -11,11 +13,13 @@ import { CreateDexAmmProtocol,
    getOrCreateUsageMetricsHourlySnapshot } from "./entites";
 import { findUSDPriceToken, updateNativeTokenPrice } from "./price/price";
 import { getPoolTVL } from "./utils";
+import { getTokenPrice } from "./utils";
 
 export function updateLiquidityPoolMetrics(event:ethereum.Event):void  {
   let eventAddress = event.address.toHexString()
   let pool = LiquidityPool.load(eventAddress)
   let poolAmounts = _LiquidityPoolAmount.load(eventAddress)
+  let protocol = CreateDexAmmProtocol()
   let token0 = pool!.inputTokens[0]
   let token1 = pool!.inputTokens[1]
   let LPtoken = pool!.outputToken!
@@ -32,11 +36,26 @@ export function updateLiquidityPoolMetrics(event:ethereum.Event):void  {
   if(!token1result.reverted){
     token1Balance = token1result.value
   }
+  pool!.inputTokenBalances = [token0Balance, token1Balance]
+  pool!.save();
+  let poolOldUSD = pool!.totalValueLockedUSD
   pool!.totalValueLockedUSD = getPoolTVL(token0, token1, eventAddress)
+
   pool!.save();
   poolAmounts!.inputTokenBalances = [token0Balance.toBigDecimal(), token1Balance.toBigDecimal()]
   poolAmounts!.save()
-
+  protocol.totalValueLockedUSD = protocol!.totalValueLockedUSD.minus(poolOldUSD)
+  protocol.totalValueLockedUSD = protocol!.totalValueLockedUSD.plus(pool!.totalValueLockedUSD)
+  let tranlog = event.transaction.hash.toHexString().concat(event.logIndex.toString())
+  let helpEntity = _TotalLockedUSD.load(tranlog)
+  if(helpEntity==null){
+    helpEntity = new _TotalLockedUSD(tranlog)
+    helpEntity.timestamp = event.block.timestamp
+    helpEntity.totalValueLockedUSD = protocol.totalValueLockedUSD
+    helpEntity.operationPool = pool!.id
+  }
+  helpEntity.save()
+  protocol.save();
   let dailyPoolSnapshot = getOrCreateLiquidityPoolDailySnapshot(event)
   dailyPoolSnapshot.blockNumber = event.block.number
   dailyPoolSnapshot.timestamp = event.block.timestamp
@@ -52,6 +71,7 @@ export function updateLiquidityPoolMetrics(event:ethereum.Event):void  {
 
   hourlyPoolSnapshot.outputTokenSupply = ERC20LPToken.totalSupply()
   hourlyPoolSnapshot.save();
+  updateProtcolFinancialsMetrics(event)
 }
 
 export function updateProtocolMetrics(event:ethereum.Event, userAddress:string, eventType:string):void {
@@ -123,15 +143,26 @@ export function updateTokenWhitelists(token0:string, token1:string, poolAddress:
   }
 }
 
+
 export function updateTokenPrice(event:ethereum.Event):void {
   let blocknum = event.block.number
   let pool = LiquidityPool.load(event.address.toHexString())!
   let nativeToken = updateNativeTokenPrice()
+
   let token0 = Token.load(pool.inputTokens[0])!
   let token1 = Token.load(pool.inputTokens[1])!
-  token0.lastPriceUSD = findUSDPriceToken(token0, nativeToken)
+
+  let token0Price = getTokenPrice(token0.id)
+  let token1Price = getTokenPrice(token1.id)
+  log.info("[updateTokenPrice]{},token0:{},token0Price:{},token1:{},token1Price:{}",
+      [event.block.timestamp.toString(),
+      token0.id,
+      token0Price.toString(),
+      token1.id,
+      token1Price.toString()])
+  token0.lastPriceUSD = token0Price
   token0.lastPriceBlockNumber = blocknum
-  token1.lastPriceUSD = findUSDPriceToken(token1, nativeToken)
+  token1.lastPriceUSD = token1Price
   token1.lastPriceBlockNumber = blocknum
   token0.save()
   token1.save()

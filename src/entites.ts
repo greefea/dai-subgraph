@@ -247,7 +247,7 @@ export function CreateLiquidityPoolFee(poolAddress:string):void {
     let poolFee = LiquidityPoolFee.load(id)
     if(poolFee == null){
         poolFee = new LiquidityPoolFee(id)
-        poolFee!.feePercentage = BigDecimal.fromString("3")
+        poolFee!.feePercentage! = BigDecimal.fromString("3")
         poolFee!.feeType = LquidityPoolFee.FIXED_TRADING_FEE
         poolFee!.save()
     }

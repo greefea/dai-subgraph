@@ -3,7 +3,7 @@ import {Mint, Swap,Burn, Sync} from "../generated/templates/Pair/Pair";
 import {Pair as PairTemplate} from "../generated/templates"
 import { LiquidityPool, _HelperStore, Token } from "../generated/schema";
 import { updateLiquidityPoolMetrics, updateProtocolMetrics, updateTokenWhitelists, updateTokenPrice, updateVolumeAndFees } from "./updateMetrics"
-import { getTrackedVolumeUSD } from "./price/price"
+
 
 
 
