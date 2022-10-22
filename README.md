@@ -22,5 +22,5 @@ Documentation: https://thegraph.com/docs/en/cookbook/quick-start/
 3. add to daily entity, total DAI liquidity (reserve) across all pools, total swap count, total swap amount (USD)
 4. add to daily entity, % of DAI supply that is providing liquidity at UniSwap v2, % of DAI transfer counts that is swaps, % DAI transfer amount that is swaps
 
-## build a subgraph for uniswap v2
-1. fork the format of dex-amm.graphql,build a subgraph
+## Third Step
+Develop a subgraph for Uniswap v2 using Messari's DEX schema: https://github.com/messari/subgraphs/blob/master/schema-dex-amm.graphql
