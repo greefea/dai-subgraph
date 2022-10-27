@@ -3,7 +3,7 @@ import { ERC20 } from "../generated/Uniswapv2/ERC20";
 import { Account, ActiveAccount, DexAmmProtocol, LiquidityPool,
    LiquidityPoolDailySnapshot, Token, _LiquidityPoolAmount,
   _TotalLockedUSD } from "../generated/schema";
-import { BIGINT_ZERO, SECONDS_PER_DAY, SECONDS_PER_HOUR, WHITELIST_TOKENS } from "./constants";
+import { BIGINT_ZERO, FACTORY_ADDRESS, SECONDS_PER_DAY, SECONDS_PER_HOUR, WHITELIST_TOKENS } from "./constants";
 import { CreateDexAmmProtocol,
    getOrCreateFinancialsDailySnapshot, 
    getOrCreateLiquidityPoolDailySnapshot, 
@@ -60,7 +60,8 @@ export function updateLiquidityPoolMetrics(event:ethereum.Event):void  {
   dailyPoolSnapshot.blockNumber = event.block.number
   dailyPoolSnapshot.timestamp = event.block.timestamp
   dailyPoolSnapshot.inputTokenBalances = [token0Balance, token1Balance]
-
+  dailyPoolSnapshot.totalValueLockedUSD = pool!.totalValueLockedUSD
+  dailyPoolSnapshot.cumulativeVolumeUSD = pool!.cumulativeVolumeUSD
   dailyPoolSnapshot.outputTokenSupply = ERC20LPToken.totalSupply()
   dailyPoolSnapshot.save()
 
@@ -68,7 +69,8 @@ export function updateLiquidityPoolMetrics(event:ethereum.Event):void  {
   hourlyPoolSnapshot.blockNumber = event.block.number
   hourlyPoolSnapshot.timestamp = event.block.timestamp
   hourlyPoolSnapshot.inputTokenBalances = [token0Balance, token1Balance]
-
+  hourlyPoolSnapshot.totalValueLockedUSD = pool!.totalValueLockedUSD
+  hourlyPoolSnapshot.cumulativeVolumeUSD = pool!.cumulativeVolumeUSD
   hourlyPoolSnapshot.outputTokenSupply = ERC20LPToken.totalSupply()
   hourlyPoolSnapshot.save();
   updateProtcolFinancialsMetrics(event)
@@ -117,10 +119,11 @@ export function updateProtcolFinancialsMetrics(event:ethereum.Event):void {
   let id = day.toString()
   let dailyFinancialsSnapshot = getOrCreateFinancialsDailySnapshot(event)
   let pool = LiquidityPool.load(event.address.toHexString())!
+  let protocol = DexAmmProtocol.load(FACTORY_ADDRESS);
 
   let tvl = dailyFinancialsSnapshot.totalValueLockedUSD.plus(pool.totalValueLockedUSD)
   dailyFinancialsSnapshot.totalValueLockedUSD = tvl
-
+  dailyFinancialsSnapshot.cumulativeVolumeUSD = protocol!.cumulativeVolumeUSD
   dailyFinancialsSnapshot.save()
 
   

@@ -143,5 +143,6 @@ templates:
           handler: handleMint
         - event: Burn(indexed address,uint256,uint256,indexed address)
           handler: handleBurn
-
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
          

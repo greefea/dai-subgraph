@@ -843,3 +843,12 @@ type _TotalLockedUSD @entity{
   totalValueLockedUSD:BigDecimal!
   operationPool: String!
 }
+
+type _Transfer @entity{
+    id:ID!
+    timestamp: BigInt!
+    blockNumber: BigInt!
+    liquidity: BigInt
+    type:ID
+    sender:ID
+}

@@ -16,7 +16,8 @@ import {
   ActiveAccount,
   _LiquidityPoolAmount,
   _TokenWhitelist,
-  _HelperStore
+  _HelperStore,
+  _Transfer
  } from "../generated/schema";
 
  import { ERC20 } from "../generated/Uniswapv2/ERC20";
@@ -24,6 +25,7 @@ import {
 import {Address, BigDecimal, BigInt, ethereum } from "@graphprotocol/graph-ts"
 import { 
   isNullEthValue
+  ,convertTokenToDecimal
  } from "./utils";
 import {
   BIGINT_ZERO,
@@ -134,6 +136,11 @@ export function CreateDexAmmProtocol():DexAmmProtocol {
         protocol.save()
     }
     return protocol
+}
+
+export function getLiquidityPool(address:string):LiquidityPool {
+    let pool = LiquidityPool.load(address);
+    return pool!
 }
 
 export function getOrCreateUsageMetricsDailySnapshot(event:ethereum.Event):UsageMetricsDailySnapshot {
@@ -330,6 +337,14 @@ export function getOrCreateDeposit(event:Mint):Deposit {
   let hash = event.transaction.hash.toHexString()
   let logIndex = event.transactionLogIndex.toI32()
   let id = 'deposit' + hash.concat('-').concat(logIndex.toString())
+  let transfer = getOrCreateTransfer(event);
+  let pool = getLiquidityPool(event.address.toHexString())
+  let token0 = getOrCreateToken(Address.fromString(pool.inputTokens[0]))
+  let token1 = getOrCreateToken(Address.fromString(pool.inputTokens[1]))
+
+  let token0Amount = convertTokenToDecimal(event.params.amount0, token0.decimals)
+  let token1Amount = convertTokenToDecimal(event.params.amount1, token1.decimals)
+
   let depositEntity = Deposit.load(id)
   if(depositEntity == null){
     depositEntity = new Deposit(id)
@@ -344,17 +359,29 @@ export function getOrCreateDeposit(event:Mint):Deposit {
     depositEntity.timestamp = event.block.timestamp;
     depositEntity.inputTokens = pool!.inputTokens;
     depositEntity.outputToken = pool!.outputToken;
-    depositEntity.inputTokenAmounts = [event.params.amount0,event.params.amount0]
-    depositEntity.outputTokenAmount = BIGINT_ZERO;
+    depositEntity.inputTokenAmounts = [event.params.amount0,event.params.amount1]
+    depositEntity.outputTokenAmount = transfer.liquidity;
     let token0 = Token.load(pool!.inputTokens[0])!
-    let token0AmountUSD = token0.lastPriceUSD!.times(event.params.amount0.toBigDecimal())
+    let token0AmountUSD = token0.lastPriceUSD!.times(convertTokenToDecimal(event.params.amount0,token0.decimals))
     let token1 = Token.load(pool!.inputTokens[1])!
-    let token1AmountUSD = token1.lastPriceUSD!.times(event.params.amount1.toBigDecimal())
+    let token1AmountUSD = token1.lastPriceUSD!.times(convertTokenToDecimal(event.params.amount1,token1.decimals))
     depositEntity.amountUSD = token0AmountUSD.plus(token1AmountUSD);
     depositEntity.pool = pool!.id
     depositEntity.save();
   }
   return depositEntity
+}
+
+export function getOrCreateTransfer(event:ethereum.Event):_Transfer {
+    let hash = event.transaction.hash.toHexString();
+    let _transfer = _Transfer.load(hash);
+    if(_transfer == null){
+        _transfer = new _Transfer(hash);
+        _transfer.timestamp = event.block.timestamp;
+        _transfer.blockNumber = event.block.number;
+        _transfer.save();
+    }
+    return _transfer;
 }
 
 export function getOrCreateWithdraw(event:Burn):Withdraw {
@@ -377,7 +404,11 @@ export function getOrCreateWithdraw(event:Burn):Withdraw {
     withdrawEntity.outputToken = pool!.outputToken
     withdrawEntity.inputTokenAmounts = [event.params.amount0, event.params.amount1]
     withdrawEntity.outputTokenAmount = BIGINT_ZERO;
-    withdrawEntity.amountUSD = BIGDECIMAL_ZERO;
+    let token0 = Token.load(pool!.inputTokens[0])!
+    let token0AmountUSD = token0.lastPriceUSD!.times(convertTokenToDecimal(event.params.amount0, token0.decimals))
+    let token1 = Token.load(pool!.inputTokens[1])!
+    let token1AmountUSD = token1.lastPriceUSD!.times(convertTokenToDecimal(event.params.amount1, token1.decimals))
+    withdrawEntity.amountUSD = token0AmountUSD.plus(token1AmountUSD);;
     withdrawEntity.pool = pool!.id
     withdrawEntity.save()
   }
@@ -396,6 +427,8 @@ export function getOrCreateSwap(event:SwapEvent):Swap {
     let amountIn = event.params.amount0In > event.params.amount1In ? event.params.amount0In:event.params.amount1In
     let tokenOut = event.params.amount0Out > event.params.amount1Out ? pool!.inputTokens[0]:pool!.inputTokens[1]
     let amountOut = event.params.amount0Out > event.params.amount1Out ? event.params.amount0Out:event.params.amount1Out
+    let tokenInentity = Token.load(tokenIn)
+    let tokenOutentity = Token.load(tokenOut)
     swapEntity = new Swap(id);
     swapEntity.hash = hash
     swapEntity.logIndex = logIndex
@@ -406,10 +439,10 @@ export function getOrCreateSwap(event:SwapEvent):Swap {
     swapEntity.timestamp = event.block.timestamp
     swapEntity.tokenIn = tokenIn
     swapEntity.amountIn = amountIn
-    swapEntity.amountInUSD = BIGDECIMAL_ZERO;
+    swapEntity.amountInUSD = tokenInentity!.lastPriceUSD!.times(convertTokenToDecimal(amountIn,tokenInentity!.decimals))!;
     swapEntity.tokenOut = tokenOut
     swapEntity.amountOut = amountOut
-    swapEntity.amountOutUSD = BIGDECIMAL_ZERO;
+    swapEntity.amountOutUSD = tokenOutentity!.lastPriceUSD!.times(convertTokenToDecimal(amountOut, tokenOutentity!.decimals))!;
     swapEntity.pool = pool!.id
     swapEntity.save()
   }

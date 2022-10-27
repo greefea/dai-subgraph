@@ -1,9 +1,10 @@
+import {log} from "@graphprotocol/graph-ts"
 import { PairCreated} from "../generated/Uniswapv2/Uniswapv2";
-import {Mint, Swap,Burn, Sync} from "../generated/templates/Pair/Pair";
+import {Mint, Swap,Burn, Sync, Transfer} from "../generated/templates/Pair/Pair";
 import {Pair as PairTemplate} from "../generated/templates"
-import { LiquidityPool, _HelperStore, Token } from "../generated/schema";
+import { LiquidityPool, _HelperStore, Token, _Transfer, Deposit } from "../generated/schema";
 import { updateLiquidityPoolMetrics, updateProtocolMetrics, updateTokenWhitelists, updateTokenPrice, updateVolumeAndFees } from "./updateMetrics"
-
+import { BIGINT_THOUSAND, BIGINT_ZERO } from "./constants";
 
 
 
@@ -15,9 +16,12 @@ import { CreateDexAmmProtocol,
   getOrCreateDeposit, 
   getOrCreateWithdraw,
     getOrCreateFinancialsDailySnapshot,
-    CreateLiquidityPoolFee} from "./entites";
+    CreateLiquidityPoolFee,
+  getLiquidityPool} from "./entites";
 import { getTrackedVolumeUSD, updateNativeTokenPrice } from "./price/price";
-import { FACTORY_ADDRESS } from "./constants";
+import { BIGINT_FIVE_THOUSAND, FACTORY_ADDRESS } from "./constants";
+import { ZERO_ADDRESS, ZERO_ADDRESS_STRING } from "./prices/common/constants";
+import {handleTransferBurn, handleTransferMint, handleTransferToPoolBurn} from "./helper"
 
 
 
@@ -77,4 +81,50 @@ export function handleBurn(event:Burn):void {
   updateTokenPrice(event)
   updateLiquidityPoolMetrics(event)
   updateProtocolMetrics(event, userAddress, 'WITHDRAW')
+}
+
+export function handleTransfer(event:Transfer):void  {
+    let pool = getLiquidityPool(event.address.toHexString());
+    if(event.params.to.toHexString() == ZERO_ADDRESS_STRING &&
+        event.params.value.equals(BIGINT_THOUSAND)&&
+        pool.outputTokenSupply == BIGINT_ZERO){
+            return
+        }
+
+    if(event.params.from.toHexString()==ZERO_ADDRESS_STRING){
+        handleTransferMint(
+            event,
+            pool,
+            event.params.value,
+            event.params.to.toHexString()
+        )
+    }
+
+    if(event.params.to == event.address){
+        
+    }
+
+
+
+    let hash = event.transaction.hash.toHexString()
+    let logIndex = event.transactionLogIndex.toI32()
+    let id = 'deposit' + hash.concat('-').concat(logIndex.toString())
+    // let pool = LiquidityPool.load(event.address.toHexString())
+    if(event.params.to.toHexString() == ZERO_ADDRESS_STRING && event.params.value.equals(BIGINT_THOUSAND) && pool!.outputTokenSupply == BIGINT_ZERO){
+        return;
+    }
+
+    if(event.params.from.toHexString() == ZERO_ADDRESS_STRING){
+      handleTransferMint(event, pool, event.params.value, event.params.to.toHexString())
+    }
+
+    if(event.params.to == event.address){
+      handleTransferToPoolBurn(event, event.params.from.toHexString())
+    }
+
+    if(event.params.to.toHexString() == ZERO_ADDRESS_STRING && event.params.from == event.address){
+      handleTransferBurn(event, pool, event.params.value, event.params.from.toHexString())
+    }
+
+
 }
